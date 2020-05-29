@@ -5,6 +5,7 @@
  */
 package trabajo.terminal.pkg2;
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -21,13 +22,12 @@ public class Imagen {
     BufferedImage imOriginal;
     ArrayList<GlobuloRojo> globulos;
 
-
     public Imagen(BufferedImage im) {
         imOriginal = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
         Graphics gra = imOriginal.getGraphics();
         gra.drawImage(im, 0, 0, null);
         gra.dispose();
-        
+
         this.im = im;
         globulos = new ArrayList<>();
     }
@@ -37,18 +37,40 @@ public class Imagen {
 //        im = componentesC(im,1);
 //        im = and(im,imOriginal);
 //        im = recortarM(im);
-        
-        
+
         quitarColor();
         im = fMediana(im, -1);
-        im = binarizar(im, obtenerOtsu(0));
-        im = componentesC(im,2);
+        im = binarizar(im, obtenerOtsu(im,-1));
+        im = componentesC(im,true);
         im = pasarANeggativo(im);
-        tDDistancia();
-        im = watershed();
+
+        int tamañoK = 10;
+        char kernel[][] = new char[tamañoK][tamañoK];
+
+        for (int i = 0; i < tamañoK; i++) {
+            for (int j = 0; j < tamañoK; j++) {
+                kernel[i][j] = '1';
+            }
+        }
+
+        BufferedImage marcadores = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
+        Graphics gra = marcadores.getGraphics();
+        gra.drawImage(im, 0, 0, null);
+        gra.dispose();
+
+        int contE = 0;
+
+        while (contE < 1) {
+            marcadores = erosion(marcadores, kernel);
+            contE++;;
+        }
+        marcadores = componentesC(marcadores,false);
+        
+        im = tDDistancia(im);
+        im = watershed(marcadores);
         return im;
     }
-    
+
     public static BufferedImage pasarANeggativo(BufferedImage im) {
         BufferedImage img = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
         Graphics gra = img.getGraphics();
@@ -167,7 +189,7 @@ public class Imagen {
         return rgbP;
     }
 
-    private int obtenerOtsu(int omitir) {
+    private int obtenerOtsu(BufferedImage im, int omitir) {
 
         float promedio = 0;
         float otsu = 0;
@@ -189,13 +211,13 @@ public class Imagen {
         }
 
         int omitriF;
-        int omitriT=0;
+        int omitriT = 0;
         for (int i = 0; i < img.getWidth(); i++) {
             proml = 0;
-            omitriF=0;
+            omitriF = 0;
             for (int j = 0; j < img.getHeight(); j++) {
-                pixC = img.getRGB(i, j)&16777215;
-                if(omitir==pixC){
+                pixC = img.getRGB(i, j) & 16777215;
+                if (omitir == pixC) {
                     omitriF++;
                     continue;
                 }
@@ -209,8 +231,8 @@ public class Imagen {
                 proml += alf;
                 hist[0][alf]++;
             }
-            promedio += ((float)proml / (img.getHeight()-omitriF))*((img.getHeight()-omitriF)/img.getHeight());
-            omitriT+=omitriF;
+            promedio += ((float) proml / (img.getHeight() - omitriF)) * ((img.getHeight() - omitriF) / img.getHeight());
+            omitriT += omitriF;
         }
         promedio /= img.getWidth();
 
@@ -316,8 +338,22 @@ public class Imagen {
         return img;
     }
 
-    private void tDDistancia() {
-        int pixC;
+    public BufferedImage tDDistancia(BufferedImage im) {
+        im = binarizar(im, obtenerOtsu(im,-1));
+
+        BufferedImage img = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
+        Graphics gra = img.getGraphics();
+        gra.drawImage(im, 0, 0, null);
+        gra.dispose();
+
+        im = binarizar(im, obtenerOtsu(im,-1));
+
+        BufferedImage img2 = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
+        gra = img2.getGraphics();
+        gra.drawImage(im, 0, 0, null);
+        gra.dispose();
+
+        int pixC, alf, r, g, b;
         float mayor = 0;
         float imgM[][] = new float[im.getWidth()][im.getHeight()];
         for (int i = 0; i < im.getWidth(); i++) {
@@ -381,9 +417,11 @@ public class Imagen {
         for (int i = 0; i < im.getWidth(); i++) {
             for (int j = 0; j < im.getHeight(); j++) {
                 pixC = ((int) imgM[i][j] << 24) + ((int) imgM[i][j] << 16) + ((int) imgM[i][j] << 8) + (int) imgM[i][j];
-                im.setRGB(i, j, pixC);
+                img.setRGB(i, j, pixC);
             }
         }
+
+        return img;
     }
 
     private float[][] recalibrarRango(float[][] pixeles, float menor, float mayor) {
@@ -398,10 +436,12 @@ public class Imagen {
         return matriz;
     }
 
-    public BufferedImage watershed() {
+    public BufferedImage watershed(BufferedImage marcadores) {
 //        im = binarizar(im, obtenerOtsu(im));
 
         ArrayList<int[]> colores = new ArrayList<int[]>();
+        ArrayList<Integer> col = new ArrayList<>();
+        col.add(16777215);
 
         BufferedImage img = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
         Graphics gra = img.getGraphics();
@@ -412,15 +452,16 @@ public class Imagen {
 
 //        im = binarizar(im, obtenerOtsu(im));
         BufferedImage img2 = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
-//        Graphics gra2 = img2.getGraphics();
-//        gra2.drawImage(im, 0, 0, null);
-//        gra2.dispose();
+
+        Graphics gra2 = img2.getGraphics();
+        gra2.drawImage(marcadores, 0, 0, null);
+        gra2.dispose();
 
         int pixC, alf, r, g, b;
         int contB, contB2, contBB;
         boolean primera;
 
-        for (int i = 254; i > wt; i--) {
+        for (int i = 255; i > wt; i--) {
             contB = 0;
             contB2 = 0;
             contBB = 0;
@@ -433,8 +474,16 @@ public class Imagen {
 //            img = AndOrXor(img, img2, 'x');
                 for (int j = 0; j < im.getWidth(); j++) {
                     for (int k = 0; k < im.getHeight(); k++) {
-                        if ((img2.getRGB(j, k) & 255) > 0) {
-                            img.setRGB(j, k, img2.getRGB(j, k));
+                        if ((img2.getRGB(j, k) & 16777215) > 0) {
+                            
+                                img.setRGB(j, k, img2.getRGB(j, k));
+                                
+                            if(!col.contains(img.getRGB(j, k)&16777215)){
+                                int color[] = {j, k, img.getRGB(j, k)};
+                                colores.add(color);
+                                col.add(img.getRGB(j, k)&16777215);
+                            }
+                            
                         }
                     }
                 }
@@ -444,7 +493,7 @@ public class Imagen {
                 for (int j = 0; j < im.getWidth(); j++) {
                     for (int k = 0; k < im.getHeight(); k++) {
                         int vecinos = contBB;
-                        if ((img.getRGB(j, k) & 255) == 255) {
+                        if ((img.getRGB(j, k) & 16777215) == 16777215) {
                             fin = false;
                             distancia = 0;
                             for (int jj = j - 1; jj <= j + 1 && !fin; jj++) {
@@ -453,10 +502,10 @@ public class Imagen {
                                         continue;
                                     }
                                     try {
-                                        if ((img.getRGB(jj, kk) & 255) == 0) {
+                                        if ((img.getRGB(jj, kk) & 16777215) == 0) {
                                             vecinos++;
                                         } else {
-                                            if ((img.getRGB(jj, kk) & 255) < 255) {
+                                            if ((img.getRGB(jj, kk) & 16777215) < 16777215) {
                                                 pixC = img.getRGB(jj, kk);
                                                 for (int[] c : colores) {
                                                     if (c[2] == pixC) {
@@ -477,7 +526,7 @@ public class Imagen {
                                     }
                                 }
                             }
-                            
+
 //                            obtenerOtsu(-1);
                             if (vecinos == 8) {
                                 if (i > 50) {
@@ -495,7 +544,7 @@ public class Imagen {
                                     }
                                 }
                             } else {
-                                if ((img.getRGB(j, k) & 255) == 255) {
+                                if ((img.getRGB(j, k) & 16777215) == 16777215) {
                                     if (primera) {
                                         img.setRGB(j, k, 0);
                                         contB++;
@@ -529,7 +578,6 @@ public class Imagen {
 //            GlobuloRojo gr = new GlobuloRojo(img, colores.get(6));
 //            globulos.add(gr);
 //            gr.describirContorno();
-        
 //        int color[];
 //        for(int i=0; i<colores.size(); i++){
 //            System.out.println(i);
@@ -539,15 +587,69 @@ public class Imagen {
 //            globulos.add(gr);
 //            gr.describirContorno();
 //        }
-
-        for(int[] color : colores){
+        
+        for (int[] color : colores) {
             img = binarizarUno(img2, color);
-            GlobuloRojo gr = new GlobuloRojo(img,color);
+            GlobuloRojo gr = new GlobuloRojo(img, color);
             globulos.add(gr);
             gr.describirContorno();
         }
-        
+
         return img2;
+    }
+
+    public BufferedImage erosion(BufferedImage im, char[][] kern) {
+        im = binarizar(im, obtenerOtsu(im, -1));
+
+        BufferedImage img = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
+        Graphics gra = img.getGraphics();
+//        gra.drawImage(newImage, 0, 0, null);
+//        gra.dispose();
+//        gra.setColor(Color.white);
+//        gra.fillRect(0, 0, im.getWidth(), im.getHeight());
+
+        int conta = 0;
+//        for (int iM = 0; iM < kern.length; iM++) {
+//            for (int jM = 0; jM < kern[iM].length; jM++) {
+//                if (kern[iM][jM] == '0') {
+//                    conta++;
+//                }
+//            }
+//        }
+        conta = kern.length * kern[0].length;
+
+        int pixC, alf, r, g, b;
+        int cont;
+        for (int i = kern.length / 2; i < im.getWidth() - kern.length / 2; i++) {
+            for (int j = kern[0].length / 2; j < im.getHeight() - kern[0].length / 2; j++) {
+                cont = 0;
+                for (int iM = 0; iM < kern.length; iM++) {
+                    for (int jM = 0; jM < kern[iM].length; jM++) {
+
+                        if (kern[iM][jM] == 'x') {
+                            cont++;
+                            continue;
+                        } else {
+                            if (((im.getRGB(i + iM - (int) (kern.length / 2), j + jM - (int) (kern[iM].length / 2)) & 1) + "").charAt(0) == kern[iM][jM]) {
+                                cont++;
+                            } else {
+                                cont = 0;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (cont == conta) {
+                    pixC = ((int) 255 << 24) + ((int) 255 << 16) + ((int) 255 << 8) + (int) 255;
+                    img.setRGB(i, j, pixC);
+                }
+//                else{
+//                    
+//                }
+            }
+        }
+
+        return img;
     }
 
     public BufferedImage AndOrXor(BufferedImage im, BufferedImage img2, char andor) {
@@ -638,12 +740,12 @@ public class Imagen {
 
         return img;
     }
-    
-    public static BufferedImage componentesC(BufferedImage im,int vez) {
-        
+
+    public static BufferedImage componentesC(BufferedImage im, boolean rellenar) {
+
         int margen = 0;
-        
-        BufferedImage img = new BufferedImage(im.getWidth() + (margen*2), im.getHeight() + (margen*2), im.getType());
+
+        BufferedImage img = new BufferedImage(im.getWidth() + (margen * 2), im.getHeight() + (margen * 2), im.getType());
         Graphics gra = img.getGraphics();
         gra.drawImage(im, margen, margen, null);
         gra.dispose();
@@ -663,7 +765,7 @@ public class Imagen {
                 if ((img.getRGB(i, j) & 255) != 0) {
 //                    img.setRGB(i, j, cont++);
                     img.setRGB(i, j, cont);
-                    cont += 10;
+                    cont += 100;
                 }
             }
         }
@@ -728,96 +830,95 @@ public class Imagen {
             System.out.println("asdas");
 
         }
-        
-        ArrayList<Integer> colores = new ArrayList();
-        ArrayList<Integer> cantidad = new ArrayList();
-        int color;
-        
-        for (int j = 0; j < im.getHeight(); j++) {
-            for (int i = 0; i < im.getWidth(); i++) {
-                color=im.getRGB(i, j)&16777215;
-                if(color == 0){
-                    continue;
+
+        if (rellenar) {
+            ArrayList<Integer> colores = new ArrayList();
+            ArrayList<Integer> cantidad = new ArrayList();
+            int color;
+
+            for (int j = 0; j < im.getHeight(); j++) {
+                for (int i = 0; i < im.getWidth(); i++) {
+                    color = im.getRGB(i, j) & 16777215;
+                    if (color == 0) {
+                        continue;
+                    }
+
+                    if ((colores.indexOf(color)) == -1) {
+                        colores.add(color);
+                        cantidad.add(1);
+                    } else {
+                        cantidad.set(colores.indexOf(color), cantidad.get(colores.indexOf(color)) + 1);
+                    }
                 }
-                
-                if((colores.indexOf(color))==-1){
-                    colores.add(color);
-                    cantidad.add(1);
+            }
+
+            int index = 0;
+
+            for (int i = 1; i < colores.size(); i++) {
+                if (cantidad.get(i) > cantidad.get(index)) {
+                    index = i;
                 }
-                else{
-                    cantidad.set( colores.indexOf(color) , cantidad.get(colores.indexOf(color))+1);
+            }
+
+            color = colores.get(index);
+
+            for (int j = 0; j < im.getHeight(); j++) {
+                for (int i = 0; i < im.getWidth(); i++) {
+                    if ((im.getRGB(i, j) & 16777215) != color) {
+                        im.setRGB(i, j, 0);
+                    } else {
+                        im.setRGB(i, j, 16777215);
+                    }
                 }
             }
         }
-        
-        int index=0;
-        
-        for (int i = 1; i < colores.size(); i++) {
-            if(cantidad.get(i)>cantidad.get(index)){
-                index=i;
-            }
-        }
-        
-        color= colores.get(index);
-        
-        for (int j = 0; j < im.getHeight(); j++) {
-            for (int i = 0; i < im.getWidth(); i++) {
-                if((im.getRGB(i, j) & 16777215) != color){
-                    im.setRGB(i, j, 0);
-                }
-                else{
-                    im.setRGB(i, j, 16777215);
-                }
-            }
-        }
-        
+
         return im;
     }
-    
+
     public static BufferedImage recortarM(BufferedImage im) {
-        int xmin =im.getWidth();
-        int xmax =0;
-        int ymin =im.getHeight();
-        int ymax =0;
-        
+        int xmin = im.getWidth();
+        int xmax = 0;
+        int ymin = im.getHeight();
+        int ymax = 0;
+
         for (int j = 0; j < im.getHeight(); j++) {
             for (int i = 0; i < im.getWidth(); i++) {
-                if((im.getRGB(i, j) & 16777215)!=0){
-                    if(i<xmin){
+                if ((im.getRGB(i, j) & 16777215) != 0) {
+                    if (i < xmin) {
                         xmin = i;
                     }
-                    if(i>xmax){
+                    if (i > xmax) {
                         xmax = i;
                     }
-                    if(j<ymin){
+                    if (j < ymin) {
                         ymin = j;
                     }
-                    if(j>ymax){
+                    if (j > ymax) {
                         ymax = j;
                     }
                 }
             }
         }
-        System.out.println(xmax+" "+xmin+" "+ ymax+" "+ymin);
-        
-        BufferedImage img = im.getSubimage(xmin, ymin, xmax-xmin, ymax-ymin);
-        
+        System.out.println(xmax + " " + xmin + " " + ymax + " " + ymin);
+
+        BufferedImage img = im.getSubimage(xmin, ymin, xmax - xmin, ymax - ymin);
 
         return img;
     }
-    
+
     public static BufferedImage and(BufferedImage im, BufferedImage img2) {
-        
+
         BufferedImage img = new BufferedImage(im.getWidth(), im.getHeight(), im.getType());
 
         int pixC = 0, pixC2 = 0;
 
         for (int i = 0; i < img.getWidth(); i++) {
             for (int j = 0; j < img.getHeight(); j++) {
-                pixC = im.getRGB(i, j)&16777215;
-                pixC2 = img2.getRGB(i,j)&16777215;
+                pixC = im.getRGB(i, j) & 16777215;
+                pixC2 = img2.getRGB(i, j) & 16777215;
 
-                img.setRGB(i, j, pixC&pixC2);
+                img.setRGB(i, j, pixC & pixC2);
             }
         }
 

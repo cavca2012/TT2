@@ -8,7 +8,9 @@ package trabajo.terminal.pkg2;
 
 import com.sun.java.accessibility.util.SwingEventMonitor;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -44,6 +46,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.JViewport;
 import javax.swing.filechooser.FileFilter;
@@ -64,6 +67,12 @@ public class TrabajoTerminal2 implements ActionListener, ComponentListener{
     JFileChooser choose;
     FileFilter imageFilter;
     JTabbedPane pestanias;
+    JLabel tfRojo;
+    JLabel tfSal;
+    JLabel tfMicro;
+    JLabel tfCodo;
+    JLabel tfHipo;
+    JLabel tfNoC;
     JButton bot1;
     JPanel pan;
     JLabel jlImg;
@@ -83,6 +92,15 @@ public class TrabajoTerminal2 implements ActionListener, ComponentListener{
         menuI2 = new JMenuItem("Abrir imagen");
         menuI3 = new JMenuItem("Guardar Imagen");
         pan = new JPanel();
+        
+        pan.setLayout(null);
+        
+        tfRojo=new JLabel();
+        tfSal=new JLabel();
+        tfMicro=new JLabel();
+        tfCodo=new JLabel();
+        tfHipo=new JLabel();
+        tfNoC=new JLabel();
         
 //        menu.add(menuI1);
         menu.add(menuI2);
@@ -105,12 +123,50 @@ public class TrabajoTerminal2 implements ActionListener, ComponentListener{
 //        splitP.setDividerLocation((int)(frame.getWidth()*.7));
         splitP.setEnabled(false);
         
-        bot1.setBounds((int)(width*.3)/2-(int)(width*.3/3/2), (int)(height*.7), (int)(width*.3/3), 80);
+        System.out.println(width);
+        System.out.println(height);
         
-        pan.add(bot1);
-        
+        tfRojo.setBounds((int)(width*.3)/2-(int)(width*.3*.8f/2), (int)(height*.1f), (int)(width*.3*.8f), 80);
+        tfSal.setBounds((int)(width*.3)/2-(int)(width*.3*.8f/2), (int)(height*.2f), (int)(width*.3*.8f), 80);
+        tfMicro.setBounds((int)(width*.3)/2-(int)(width*.3*.8f/2), (int)(height*.3f), (int)(width*.3*.8f), 80);
+        tfCodo.setBounds((int)(width*.3)/2-(int)(width*.3*.8f/2), (int)(height*.4f), (int)(width*.3*.8f), 80);
+        tfHipo.setBounds((int)(width*.3)/2-(int)(width*.3*.8f/2), (int)(height*.5f), (int)(width*.3*.8f), 80);
+        tfNoC.setBounds((int)(width*.3)/2-(int)(width*.3*.8f/2), (int)(height*.6f), (int)(width*.3*.8f), 80);
+        bot1.setBounds((int)(width*.3)/2-(int)(width*.3*.8f/2), (int)(height*.7f), (int)(width*.3*.8f), 50);
+                
         menuI3.setEnabled(false);
         bot1.setEnabled(false);
+        
+        Font font = new Font("Calibro", Font.BOLD, 30);
+        
+        tfRojo.setText("<html>Total de globulos rojos identificados: </html>");
+        tfSal.setText("<html>Eritrocitos salidables identificados: </html>");
+        tfMicro.setText("<html>Microcitos identificados: </html>");
+        tfCodo.setText("<html>Codocitos identificados: </html>");
+        tfHipo.setText("<html>Eritrocitos con hipocromia identificados: </html>");
+        tfNoC.setText("<html>Eritrocitos no clasificados: </html>");
+        
+        tfRojo.setFont(font);
+        tfSal.setFont(font);
+        tfMicro.setFont(font);
+        tfCodo.setFont(font);
+        tfHipo.setFont(font);
+        tfNoC.setFont(font);
+        
+        tfRojo.setForeground(Color.green);
+        tfSal.setForeground(Color.blue);
+        tfMicro.setForeground(Color.blue);
+        tfCodo.setForeground(Color.blue);
+        tfHipo.setForeground(Color.blue);
+        tfNoC.setForeground(Color.red);
+        
+        pan.add(tfRojo);
+        pan.add(tfSal);
+        pan.add(tfMicro);
+        pan.add(tfCodo);
+        pan.add(tfHipo);
+        pan.add(tfNoC);
+        pan.add(bot1);
         
         frame.setJMenuBar(menuBar);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
